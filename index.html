@@ -176,6 +176,11 @@ html.logo-solta .t-info,html.logo-presa .t-info{opacity:1;pointer-events:auto}
 html.logo-presa .t-info{transform:translate(calc(var(--lh) * 1.7616 + 32px), -50%)}
 @media (max-width:1280px){html.logo-presa .t-info a span{display:none}html.logo-presa .t-info a{padding:0 8px;min-width:44px;justify-content:center}}
 @media (max-width:900px){.t-info a span{display:none}.t-info a{padding:0 8px;min-width:44px;justify-content:center}}
+@media (max-width:900px){
+  .voa{z-index:auto;will-change:auto;transform:none!important}
+  html.logo-presa .voa{visibility:visible}
+  .marca img{transition:opacity .3s ease!important}
+}
 /* abertura: o topo entra no fim */
 .ab:not(.abre) .topo{opacity:0;pointer-events:none}
 
@@ -1106,34 +1111,19 @@ html.menu-aberto{overflow:hidden}
     if (!voa || !img || !alvo) return;
     var m = null;
     if (!desk) {
-      /* celular: rolagem do dedo não combina com animação presa ao scroll (treme).
-         Aqui a logo grande rola junto com a página e, quando passa por baixo do topo,
-         uma cópia voa até o lugar em tempo próprio, sem depender do scroll. */
-      var presa = false, clone = null;
-      html.classList.add('logo-solta');
-      function voar(ir) {
-        if (clone) { gsap.killTweensOf(clone); clone.remove(); clone = null; }
-        var a = img.getBoundingClientRect(), b = alvo.getBoundingClientRect();
-        var de = ir ? a : b, para = ir ? b : a;
-        clone = img.cloneNode(); clone.removeAttribute('data-in');
-        clone.style.cssText = 'position:fixed;left:0;top:0;margin:0;z-index:70;pointer-events:none;transform-origin:0 0;width:' + de.width + 'px;height:auto;transform:translate(' + de.left + 'px,' + de.top + 'px)';
-        document.body.appendChild(clone);
-        if (ir) html.classList.replace('logo-solta', 'logo-presa');
-        voa.style.visibility = 'hidden';
-        gsap.to(clone, { x: para.left, y: para.top, width: para.width, duration: .5, ease: 'power3.inOut',
-          onComplete: function () {
-            clone.remove(); clone = null; voa.style.visibility = '';
-            if (!ir) html.classList.replace('logo-presa', 'logo-solta');
-          } });
-        gsap.set(clone, { x: de.left, y: de.top, transform: '' });
-      }
+      /* celular: nada preso à rolagem (tremia). A logo grande rola normal e,
+         quando passa por baixo do topo, a logo do topo aparece com um fade. */
+      var presa = null;
       function confere() {
         var r = img.getBoundingClientRect(), t = alvo.getBoundingClientRect();
-        var deve = r.top + r.height * .5 < t.bottom + 8;
-        if (deve !== presa) { presa = deve; voar(presa); }
+        var deve = r.bottom < t.bottom + 4;
+        if (deve === presa) return;
+        presa = deve;
+        html.classList.toggle('logo-presa', presa);
+        html.classList.toggle('logo-solta', !presa);
       }
-      var pend = false;
-      addEventListener('scroll', function () { if (!pend) { pend = true; requestAnimationFrame(function () { pend = false; confere(); }); } }, { passive: true });
+      addEventListener('scroll', confere, { passive: true });
+      addEventListener('resize', confere);
       confere();
       return;
     }
