@@ -1105,6 +1105,38 @@ html.menu-aberto{overflow:hidden}
     var voa = $('.voa'), img = $('.voa img'), alvo = $('.marca img');
     if (!voa || !img || !alvo) return;
     var m = null;
+    if (!desk) {
+      /* celular: rolagem do dedo não combina com animação presa ao scroll (treme).
+         Aqui a logo grande rola junto com a página e, quando passa por baixo do topo,
+         uma cópia voa até o lugar em tempo próprio, sem depender do scroll. */
+      var presa = false, clone = null;
+      html.classList.add('logo-solta');
+      function voar(ir) {
+        if (clone) { gsap.killTweensOf(clone); clone.remove(); clone = null; }
+        var a = img.getBoundingClientRect(), b = alvo.getBoundingClientRect();
+        var de = ir ? a : b, para = ir ? b : a;
+        clone = img.cloneNode(); clone.removeAttribute('data-in');
+        clone.style.cssText = 'position:fixed;left:0;top:0;margin:0;z-index:70;pointer-events:none;transform-origin:0 0;width:' + de.width + 'px;height:auto;transform:translate(' + de.left + 'px,' + de.top + 'px)';
+        document.body.appendChild(clone);
+        if (ir) html.classList.replace('logo-solta', 'logo-presa');
+        voa.style.visibility = 'hidden';
+        gsap.to(clone, { x: para.left, y: para.top, width: para.width, duration: .5, ease: 'power3.inOut',
+          onComplete: function () {
+            clone.remove(); clone = null; voa.style.visibility = '';
+            if (!ir) html.classList.replace('logo-presa', 'logo-solta');
+          } });
+        gsap.set(clone, { x: de.left, y: de.top, transform: '' });
+      }
+      function confere() {
+        var r = img.getBoundingClientRect(), t = alvo.getBoundingClientRect();
+        var deve = r.top + r.height * .5 < t.bottom + 8;
+        if (deve !== presa) { presa = deve; voar(presa); }
+      }
+      var pend = false;
+      addEventListener('scroll', function () { if (!pend) { pend = true; requestAnimationFrame(function () { pend = false; confere(); }); } }, { passive: true });
+      confere();
+      return;
+    }
     function mede() {
       voa.style.transform = '';
       var sy = window.scrollY, rv = voa.getBoundingClientRect(), ri = img.getBoundingClientRect(), rt = alvo.getBoundingClientRect();
